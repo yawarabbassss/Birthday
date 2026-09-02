@@ -1,596 +1,662 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Volume2, VolumeX, Sparkles, Flame, Check, Stars, ArrowDown, Heart } from 'lucide-react';
+import {
+  Sparkles,
+  Heart,
+  Laugh,
+  Send,
+  Camera,
+  AlertCircle,
+  Flame,
+  CheckCircle,
+  Wind,
+  Lock,
+  Wand2,
+  RefreshCw,
+  Clock,
+  PartyPopper,
+  Music,
+  Volume2,
+  VolumeX,
+  Play,
+  Pause,
+  Mail,
+  Smile
+} from 'lucide-react';
 
 export default function App() {
-  const [entered, setEntered] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  // Step 0: Name entry, Step 1: Teaser, Step 2: Full interactive site
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [nameError, setNameError] = useState(false);
+
+  // Audio Engine (YouTube background stream for "Kalyani")
+  const [musicPlaying, setMusicPlaying] = useState(false);
+  const [soundMuted, setSoundMuted] = useState(false);
   const ytPlayerRef = useRef(null);
-  const htmlAudioRef = useRef(null);
 
-  // Chapter 01: Interactive Evasive Key Quiz State
-  const [btnOffset, setBtnOffset] = useState({ x: 0, y: 0 });
-  const [evasiveAttempts, setEvasiveAttempts] = useState(0);
-  const [tooltip, setTooltip] = useState('');
-  const [quizUnlocked, setQuizUnlocked] = useState(false);
+  // Cake / Candles State
+  const [candles, setCandles] = useState([false, false, false]);
+  const [allBlown, setAllBlown] = useState(false);
 
-  // Chapter 02: Starlight Candle State
-  const [candleLit, setCandleLit] = useState(true);
-  const [candleProgress, setCandleProgress] = useState(0);
-  const candleHoldInterval = useRef(null);
+  // Secret Gift State
+  const [unlockedGift, setUnlockedGift] = useState(false);
 
-  // 09.09 Live Clock Ticker
-  const [timeTicker, setTimeTicker] = useState('');
+  // Wish Generator State
+  const wishesList = [
+    "May this year surprise you in the best possible ways.",
+    "May you find more reasons to laugh than reasons to overthink.",
+    "May your biggest plans become your favorite memories.",
+    "May this year be ridiculously good to you.",
+    "May every door you open lead to peace, joy, and abundance.",
+    "May you always feel surrounded by warmth, comfort, and real love."
+  ];
+  const [wishIdx, setWishIdx] = useState(0);
 
+  // Questionnaire & Feedback Form State
+  const [wishlistText, setWishlistText] = useState('');
+  const [bestMomentText, setBestMomentText] = useState('');
+  const [repeatMomentText, setRepeatMomentText] = useState('');
+  const [feedbackText, setFeedbackText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Surprise Animation Overlay States
+  const [boomState, setBoomState] = useState(false);
+  const [showJoker, setShowJoker] = useState(false);
+
+  // 1. Reset everything fresh on page reload (no caching)
   useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setTimeTicker(
-        now.toLocaleTimeString('en-US', {
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        })
-      );
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
+    localStorage.clear();
+    sessionStorage.clear();
   }, []);
 
-  // Initialize YouTube Background Audio Player (Kalyani)
+  // 2. Initialize YouTube Background Audio Player
   useEffect(() => {
-    window.onYouTubeIframeAPIReady = () => {
-      ytPlayerRef.current = new window.YT.Player('youtube-player', {
-        videoId: 'xvT1jH8B9AM',
-        playerVars: {
-          autoplay: 0,
-          controls: 0,
-          disablekb: 1,
-          fs: 0,
-          loop: 1,
-          playlist: 'xvT1jH8B9AM',
-          modestbranding: 1,
-          rel: 0
-        },
-        events: {
-          onReady: (event) => {
-            event.target.setVolume(0);
+    const initPlayer = () => {
+      if (window.YT && window.YT.Player) {
+        ytPlayerRef.current = new window.YT.Player('youtube-streamer', {
+          videoId: 'xvT1jH8B9AM',
+          playerVars: {
+            autoplay: 0,
+            controls: 0,
+            loop: 1,
+            playlist: 'xvT1jH8B9AM',
+            modestbranding: 1,
+            fs: 0
+          },
+          events: {
+            onReady: (event) => {
+              if (musicPlaying) event.target.playVideo();
+            }
           }
-        }
-      });
-    };
-
-    if (window.YT && window.YT.Player && !ytPlayerRef.current) {
-      window.onYouTubeIframeAPIReady();
-    }
-  }, []);
-
-  // "Curtain Call" Entry Gate Trigger: Unlocks audio with smooth fade-in
-  const handleEnterCelebration = () => {
-    setEntered(true);
-    let started = false;
-
-    // 1. Attempt YouTube Background Audio Engine
-    if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
-      try {
-        ytPlayerRef.current.playVideo();
-        setIsPlaying(true);
-        started = true;
-        let volume = 0;
-        const fadeYt = setInterval(() => {
-          volume = Math.min(100, volume + 4);
-          if (ytPlayerRef.current && typeof ytPlayerRef.current.setVolume === 'function') {
-            ytPlayerRef.current.setVolume(volume);
-          }
-          if (volume >= 100) clearInterval(fadeYt);
-        }, 100);
-      } catch (e) {
-        started = false;
+        });
       }
-    }
+    };
 
-    // 2. Fallback to HTML5 audio if local /kalyani.mp3 is available
-    if (!started && htmlAudioRef.current) {
-      htmlAudioRef.current.volume = 0;
-      htmlAudioRef.current.play().then(() => {
-        setIsPlaying(true);
-        let vol = 0;
-        const fadeIn = setInterval(() => {
-          vol = Math.min(1, vol + 0.04);
-          if (htmlAudioRef.current) htmlAudioRef.current.volume = vol;
-          if (vol >= 1) clearInterval(fadeIn);
-        }, 100);
-      }).catch(() => {
-        setIsPlaying(false);
-      });
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      window.onYouTubeIframeAPIReady = initPlayer;
+      document.body.appendChild(tag);
+    } else {
+      initPlayer();
+    }
+  }, []);
+
+  const toggleMusic = () => {
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
+      if (musicPlaying) {
+        ytPlayerRef.current.pauseVideo();
+        setMusicPlaying(false);
+      } else {
+        ytPlayerRef.current.playVideo();
+        setMusicPlaying(true);
+      }
+    } else {
+      setMusicPlaying(!musicPlaying);
     }
   };
 
-  const toggleAudio = () => {
-    if (ytPlayerRef.current && typeof ytPlayerRef.current.getPlayerState === 'function') {
-      const state = ytPlayerRef.current.getPlayerState();
-      if (state === window.YT.PlayerState.PLAYING) {
-        ytPlayerRef.current.pauseVideo();
-        setIsPlaying(false);
-      } else {
-        ytPlayerRef.current.playVideo();
-        setIsPlaying(true);
-      }
+  // Name submission handler
+  const handleNameSubmit = (e) => {
+    e.preventDefault();
+    if (!nameInput.trim()) {
+      setNameError(true);
       return;
     }
+    const finalName = nameInput.trim();
+    setName(finalName);
+    setStep(1);
 
-    if (htmlAudioRef.current) {
-      if (isPlaying) {
-        htmlAudioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        htmlAudioRef.current.play();
-        setIsPlaying(true);
-      }
+    // Auto-start music playback
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
+      ytPlayerRef.current.playVideo();
+      setMusicPlaying(true);
     }
   };
 
-  // Flying Button Physics Engine
-  const handleEvasiveHover = () => {
-    if (evasiveAttempts === 0) {
-      const randomX = (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 80) + 90);
-      const randomY = (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 60) + 40);
-      setBtnOffset({ x: randomX, y: randomY });
-      setTooltip("Too slow! Try again 😉");
-      setEvasiveAttempts(1);
+  // Blow single candle
+  const extinguishCandle = (idx) => {
+    if (candles[idx]) return;
+    const updated = [...candles];
+    updated[idx] = true;
+    setCandles(updated);
+    if (updated.every((val) => val === true)) {
+      triggerAllBlown();
     }
   };
 
-  const handleCorrectChoice = () => {
-    setQuizUnlocked(true);
+  // Blow all candles
+  const handleBlowAll = () => {
+    setCandles([true, true, true]);
+    triggerAllBlown();
+  };
+
+  const triggerAllBlown = () => {
+    setAllBlown(true);
     confetti({
-      particleCount: 140,
-      spread: 80,
+      particleCount: 160,
+      spread: 90,
       origin: { y: 0.6 },
-      colors: ['#E8C595', '#C76D7E', '#FAF8F5']
+      colors: ['#a855f7', '#ec4899', '#fbbf24']
     });
   };
 
-  // Starlight Candle 3-Second Hold
-  const startBlowing = () => {
-    if (!candleLit) return;
-    candleHoldInterval.current = setInterval(() => {
-      setCandleProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(candleHoldInterval.current);
-          extinguishCandle();
-          return 100;
-        }
-        return prev + 5;
-      });
-    }, 150);
-  };
-
-  const stopBlowing = () => {
-    if (candleHoldInterval.current) {
-      clearInterval(candleHoldInterval.current);
-      if (candleLit) setCandleProgress(0);
-    }
-  };
-
-  const extinguishCandle = () => {
-    setCandleLit(false);
+  // Unlock Gift Box
+  const handleUnlockGift = () => {
+    setUnlockedGift(true);
     confetti({
       particleCount: 180,
       spread: 100,
-      origin: { y: 0.7 },
-      colors: ['#E8C595', '#C76D7E', '#FBF8F5'],
-      scalar: 1.2
+      origin: { y: 0.6 },
+      colors: ['#fbbf24', '#f472b6', '#a855f7']
     });
   };
 
+  // Form Submission & Boom Surprise Trigger
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const formData = {
+      user_name: name,
+      wishlist_upcoming_year: wishlistText,
+      best_moment_of_this_year: bestMomentText,
+      moment_wished_to_come_again: repeatMomentText,
+      feedback_message_for_yawar: feedbackText,
+      _subject: `Birthday Note & Wishlist from ${name}!`
+    };
+
+    try {
+      await fetch('https://formsubmit.co/ajax/yaawarabbass@gmail.com', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+    } catch (err) {
+      // Continue without breaking UI if offline
+    }
+
+    setIsSubmitting(false);
+
+    // Trigger Boom Sequence
+    setBoomState(true);
+
+    setTimeout(() => {
+      setBoomState(false);
+      setShowJoker(true);
+      confetti({
+        particleCount: 300,
+        spread: 140,
+        origin: { y: 0.5 },
+        colors: ['#ef4444', '#f59e0b', '#8b5cf6', '#ec4899']
+      });
+    }, 1100);
+  };
+
+  const yearsTimeline = Array.from({ length: 2026 - 2013 + 1 }, (_, i) => 2013 + i);
+
   return (
-    <div className="relative min-h-screen bg-[#07070A] text-[#FBF8F5] selection:bg-[#C76D7E] selection:text-white font-sans overflow-x-hidden">
-      {/* Hidden YouTube Audio Streamer */}
+    <div className="min-h-screen bg-[#050515] text-[#f8fafc] font-sans selection:bg-purple-500 selection:text-white relative overflow-x-hidden">
+      {/* Hidden YouTube Streamer Element */}
       <div className="fixed -left-[9999px] -top-[9999px] pointer-events-none opacity-0">
-        <div id="youtube-player"></div>
+        <div id="youtube-streamer" />
       </div>
-      {/* HTML5 Audio Local Fallback */}
-      <audio ref={htmlAudioRef} src="/kalyani.mp3" loop preload="auto" />
 
-      {/* SVG Film-Stock Grain Filter */}
-      <svg className="pointer-events-none fixed inset-0 z-50 h-full w-full opacity-[0.04]">
-        <filter id="noiseFilter">
-          <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#noiseFilter)" />
-      </svg>
-
-      {/* Persistent Ambient Celestial Background */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover opacity-30 mix-blend-screen"
+      {/* Floating Ambient Music Controls */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+        <button
+          onClick={() => setSoundMuted(!soundMuted)}
+          className="w-12 h-12 rounded-full glass-card border border-white/20 text-white flex items-center justify-center shadow-lg hover:border-purple-400 cursor-pointer"
         >
-          <source src="https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-1610-large.mp4" type="video/mp4" />
-        </video>
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(ellipse at center, rgba(7,7,10,0.4) 0%, #07070A 90%)'
-          }}
-        />
+          {soundMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5 text-purple-300" />}
+        </button>
+        <button
+          onClick={toggleMusic}
+          className={`px-5 py-3 rounded-full border glass-card text-white font-medium text-sm md:text-base flex items-center gap-2 shadow-xl cursor-pointer transition-all duration-300 ${
+            musicPlaying
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 border-pink-400 shadow-purple-500/40 animate-pulse'
+              : 'hover:border-purple-400/50 border-white/20'
+          }`}
+        >
+          <Music className={`w-5 h-5 ${musicPlaying ? 'text-amber-300 animate-spin' : 'text-slate-300'}`} />
+          <span>{musicPlaying ? 'Kalyani Playing 🎶' : 'Play Song 🎶'}</span>
+          {musicPlaying ? <Pause className="w-4 h-4 ml-1" /> : <Play className="w-4 h-4 ml-1" />}
+        </button>
       </div>
 
-      {/* "Curtain Call" Entry Gate */}
-      <AnimatePresence>
-        {!entered && (
+      {/* STEP 0: Modal Asking for User's Name */}
+      {step === 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-xl">
           <motion.div
-            initial={{ y: 0 }}
-            exit={{ y: '-100%' }}
-            transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#07070A] p-6 text-center"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="w-full max-w-md glass-card p-8 rounded-3xl text-center border border-white/20 shadow-2xl relative overflow-hidden space-y-6"
           >
-            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_40%,rgba(199,109,126,0.18),transparent_65%)]" />
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="space-y-6 relative z-10 max-w-md"
-            >
-              <p className="font-mono text-xs uppercase tracking-[0.3em] text-[#8F8799]">
-                AN EXPERIENCE FOR ZAINII
+            <div className="text-6xl animate-bounce">✨</div>
+            <div className="space-y-2">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-white glow-text-purple">
+                Wait... who are you?
+              </h2>
+              <p className="text-slate-300 text-sm md:text-base">
+                Enter your name to unlock your personalized birthday universe.
               </p>
-              <h1 className="font-serif italic text-4xl sm:text-5xl text-[#FBF8F5] leading-tight">
-                A date carved in the stars.
-              </h1>
-              <p className="text-sm text-[#8F8799] font-light leading-relaxed">
-                Step inside the celestial rose nocturne prepared exclusively for your 9th of September celebration.
-              </p>
-              <div className="pt-4">
-                <button
-                  onClick={handleEnterCelebration}
-                  className="relative group px-8 py-4 rounded-full bg-gradient-to-r from-[#E8C595] to-[#C76D7E] text-[#07070A] font-semibold text-sm tracking-wider uppercase transition-all duration-300 shadow-[0_0_30px_rgba(232,197,149,0.3)] hover:shadow-[0_0_50px_rgba(232,197,149,0.6)] cursor-pointer"
-                >
-                  <span className="relative z-10 flex items-center gap-2">
-                    Enter the Celebration
-                    <Sparkles className="w-4 h-4" />
-                  </span>
-                  <div className="absolute -inset-1 rounded-full bg-white/30 blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+            </div>
+            <form onSubmit={handleNameSubmit} className="space-y-4">
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => {
+                  setNameInput(e.target.value);
+                  if (nameError) setNameError(false);
+                }}
+                placeholder="Enter your name..."
+                className="w-full px-6 py-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-slate-400 text-lg text-center focus:outline-none focus:border-purple-400 transition-all glass-card"
+                autoFocus
+              />
+              {nameError && <p className="text-red-400 text-xs font-medium">Please enter your name!</p>}
+              <button
+                type="submit"
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-500 to-amber-400 text-white font-bold text-lg shadow-lg hover:brightness-110 cursor-pointer transition-transform active:scale-95"
+              >
+                Let's Go ✨
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* STEP 1: Teaser Transition Screen */}
+      {step === 1 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-2xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-xl text-center space-y-6"
+          >
+            <h1 className="text-4xl md:text-6xl font-serif font-extrabold text-white glow-text-purple">
+              Hey, {name}... 🥹
+            </h1>
+            <p className="text-xl md:text-2xl text-pink-300 font-medium">
+              Looks like someone has a very special birthday today.
+            </p>
+            <div className="pt-4">
+              <button
+                onClick={() => setStep(2)}
+                className="px-8 py-4 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400 text-white font-bold text-xl shadow-2xl hover:scale-105 transition-transform cursor-pointer"
+              >
+                Unlock Birthday Magic ✨
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* STEP 2: Main Website Experience */}
+      {step === 2 && (
+        <main className="relative z-10 space-y-20 md:space-y-32 pb-24">
+          {/* Hero Section */}
+          <section className="min-h-screen flex flex-col justify-center items-center text-center px-4 pt-20">
+            <div className="max-w-3xl mx-auto space-y-6">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card border border-purple-400/30 text-amber-300 text-xs font-semibold">
+                <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
+                <span>CELEBRATING YOU TODAY</span>
               </div>
-            </motion.div>
+              <h1 className="text-5xl sm:text-7xl md:text-8xl font-serif font-extrabold text-white leading-tight glow-text-purple">
+                Happy Birthday, <span className="bg-gradient-to-r from-purple-300 via-pink-400 to-amber-200 bg-clip-text text-transparent">{name}</span>!
+              </h1>
+              <p className="text-xl sm:text-2xl text-slate-300 font-light">
+                Today isn't just another day. It's your day.
+              </p>
+              <div className="text-8xl py-4 animate-bounce">🎂</div>
+            </div>
+          </section>
+
+          {/* Section: Funny Birthday Wishes */}
+          <section className="px-4 max-w-4xl mx-auto">
+            <div className="text-center space-y-3 mb-10">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-pink-500/10 border border-pink-400/30 text-pink-300 text-xs font-semibold">
+                <Laugh className="w-4 h-4 text-pink-400" />
+                <span>UNFILTERED BIRTHDAY TRUTHS</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl font-serif font-bold text-white glow-text-pink">
+                A Special Message for {name}
+              </h2>
+            </div>
+            <div className="glass-card rounded-3xl p-6 md:p-10 border border-white/20 shadow-2xl space-y-4">
+              {[
+                {
+                  icon: "🥹💗✨",
+                  text: `Happy Birthday, ${name}! May Allah bless you with endless happiness, peace, success, and all the beautiful things your heart wishes for.`,
+                  highlight: false
+                },
+                {
+                  icon: "🤍",
+                  text: "May every new chapter of your life bring you closer to your dreams, surrounded by people who genuinely love and value you.",
+                  highlight: false
+                },
+                {
+                  icon: "😂😭",
+                  text: "I hope you always keep that beautiful smile, that crazy little personality, and of course… your unlimited drama package 😂😭",
+                  highlight: true
+                },
+                {
+                  icon: "🌙👀",
+                  text: "May you get everything you pray for, except maybe the things you ask for at 3 AM when your brain has clearly stopped working. 😭😂",
+                  highlight: true
+                },
+                {
+                  icon: "✨",
+                  text: "May your life be full of unforgettable memories, random laughter, peaceful days, exciting adventures, and people who make you feel truly special.",
+                  highlight: false
+                },
+                {
+                  icon: "🧠💀",
+                  text: "And please, never change… unless it’s your habit of overthinking and forgetting everything. That one can definitely go. 😂",
+                  highlight: true
+                },
+                {
+                  icon: "🫶🏻💗",
+                  text: "Stay happy. Stay blessed. Stay exactly as wonderfully weird as you are. 🫶🏻💗",
+                  highlight: false
+                },
+                {
+                  icon: "🤲🏻✨",
+                  text: "May Allah protect you, guide you, increase you in goodness, and make every coming year of your life better than the one before.",
+                  highlight: false
+                },
+                {
+                  icon: "👀😂💗",
+                  text: `Happy Birthday once again, ${name}! 🎂✨ Now go enjoy your day… before someone reminds you that you’re getting older. 👀😂💗`,
+                  highlight: true
+                }
+              ].map((item, idx) => (
+                <div
+                  key={idx}
+                  className={`p-4 md:p-5 rounded-2xl border flex items-start gap-4 ${
+                    item.highlight
+                      ? 'bg-amber-400/10 border-amber-400/30 text-amber-200'
+                      : 'bg-white/5 border-white/10 text-slate-200'
+                  }`}
+                >
+                  <span className="text-2xl shrink-0 select-none">{item.icon}</span>
+                  <p className="text-base md:text-lg leading-relaxed font-medium">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Section: 2013-2026 Timeline */}
+          <section className="px-4 max-w-5xl mx-auto text-center">
+            <div className="space-y-3 mb-8">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-400/30 text-purple-300 text-xs font-semibold">
+                <Camera className="w-4 h-4 text-purple-400" />
+                <span>PHOTO TIMELINE ARCHIVES</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl font-serif font-bold text-white glow-text-purple">
+                2013 — 2026 Memory Vault
+              </h2>
+            </div>
+            <div className="glass-card rounded-3xl p-6 md:p-8 border border-white/20 shadow-2xl space-y-6">
+              <div className="flex gap-4 overflow-x-auto pb-4 pt-2">
+                {yearsTimeline.map((yr) => (
+                  <div
+                    key={yr}
+                    className="min-w-[130px] sm:min-w-[160px] h-44 rounded-2xl glass-card border border-white/10 flex flex-col items-center justify-center p-3"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-white/5 border border-white/15 flex items-center justify-center mb-2">
+                      <Camera className="w-5 h-5 text-slate-500" />
+                    </div>
+                    <span className="font-serif text-2xl font-bold text-white">{yr}</span>
+                    <span className="text-[10px] text-slate-500 uppercase mt-1">[EMPTY]</span>
+                  </div>
+                ))}
+              </div>
+              <div className="p-4 rounded-2xl bg-pink-500/10 border border-pink-400/30 text-pink-200 max-w-md mx-auto flex items-center justify-center gap-3">
+                <AlertCircle className="w-5 h-5 text-pink-400 shrink-0" />
+                <p className="text-sm font-medium">
+                  Honestly, I didn't have your pictures, so that's why this whole timeline is empty! 😂📸
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Section: Wishlist & Questions (Sent to yaawarabbass@gmail.com) */}
+          <section className="px-4 max-w-3xl mx-auto">
+            <div className="text-center space-y-3 mb-8">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-300 text-xs font-semibold">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>CONFIDENTIAL QUESTIONNAIRE</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl font-serif font-bold text-white glow-text-gold">
+                Your Upcoming Year & Memories
+              </h2>
+            </div>
+            <div className="glass-card rounded-3xl p-6 md:p-10 border border-white/20 shadow-2xl">
+              <form onSubmit={handleFormSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-slate-200 font-semibold text-sm md:text-base flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-pink-400" />
+                    What do you genuinely want in this upcoming year? (Your Wishlist)
+                  </label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={wishlistText}
+                    onChange={(e) => setWishlistText(e.target.value)}
+                    placeholder="Write all your goals, wishes, or demands..."
+                    className="w-full px-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 transition-all text-sm md:text-base"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-slate-200 font-semibold text-sm md:text-base flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    What was the best moment of this year?
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={bestMomentText}
+                    onChange={(e) => setBestMomentText(e.target.value)}
+                    placeholder="That one memory that made you genuinely happy..."
+                    className="w-full px-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 transition-all text-sm md:text-base"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-slate-200 font-semibold text-sm md:text-base flex items-center gap-2">
+                    <Smile className="w-4 h-4 text-purple-300" />
+                    A moment you wish would come again?
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={repeatMomentText}
+                    onChange={(e) => setRepeatMomentText(e.target.value)}
+                    placeholder="A memory or feeling you'd relive in a heartbeat..."
+                    className="w-full px-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 transition-all text-sm md:text-base"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-slate-200 font-semibold text-sm md:text-base flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-pink-400" />
+                    Feedback / Message for Yawar (Sent directly to yaawarabbass@gmail.com):
+                  </label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    placeholder="Compliments, roasts, or a review of this site! 😂"
+                    className="w-full px-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 transition-all text-sm md:text-base"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-5 rounded-2xl bg-gradient-to-r from-amber-400 via-pink-500 to-purple-600 text-slate-950 font-extrabold text-xl shadow-2xl hover:brightness-110 transition-all cursor-pointer flex items-center justify-center gap-3"
+                >
+                  <Flame className="w-6 h-6 animate-pulse" />
+                  <span>{isSubmitting ? 'Sending to Yawar...' : 'Move to Surprise 💥'}</span>
+                </button>
+              </form>
+            </div>
+          </section>
+
+          {/* Interactive Cake Section */}
+          <section className="px-4 max-w-3xl mx-auto text-center">
+            <div className="glass-card rounded-3xl p-8 border border-white/20 shadow-2xl space-y-8">
+              <div className="space-y-2">
+                <h2 className="text-3xl md:text-4xl font-serif font-bold text-white glow-text-purple">
+                  Make a wish & blow out the candles
+                </h2>
+                <p className="text-slate-300 text-sm md:text-base">
+                  Tap each candle flame or hit the button below!
+                </p>
+              </div>
+              <div className="flex justify-center items-end gap-8 my-4">
+                {candles.map((extinguished, idx) => (
+                  <div key={idx} onClick={() => extinguishCandle(idx)} className="cursor-pointer flex flex-col items-center">
+                    <div className="h-8 flex items-center justify-center">
+                      {!extinguished ? (
+                        <div className="w-4 h-6 bg-gradient-to-t from-orange-500 via-amber-400 to-yellow-200 rounded-full blur-[1px] shadow-[0_0_15px_rgba(251,191,36,0.9)] animate-pulse" />
+                      ) : (
+                        <span className="text-xs text-slate-500 font-bold">💨</span>
+                      )}
+                    </div>
+                    <div className="w-3 h-14 bg-gradient-to-b from-pink-400 to-purple-500 rounded-t shadow" />
+                  </div>
+                ))}
+              </div>
+              <div className="w-64 sm:w-80 h-16 bg-gradient-to-r from-pink-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center font-bold text-white shadow-lg">
+                HAPPY BIRTHDAY {name.toUpperCase()}
+              </div>
+              {!allBlown ? (
+                <button
+                  onClick={handleBlowAll}
+                  className="px-8 py-4 rounded-full bg-gradient-to-r from-purple-600 via-pink-500 to-amber-400 text-white font-bold text-lg shadow-xl cursor-pointer hover:scale-105 transition-transform"
+                >
+                  <Wind className="w-5 h-5 inline mr-2" />
+                  Blow Out Candles
+                </button>
+              ) : (
+                <div className="p-4 rounded-2xl bg-amber-400/20 text-amber-200 font-bold text-xl inline-flex items-center gap-2">
+                  <CheckCircle className="w-6 h-6 text-amber-300" />
+                  Wish locked into the stars! ✨
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Secret Gift Box */}
+          <section className="px-4 max-w-2xl mx-auto text-center">
+            <div className="glass-card rounded-3xl p-8 border border-amber-400/30 shadow-2xl space-y-6">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-white glow-text-gold">
+                A Final Locked Gift
+              </h2>
+              {!unlockedGift ? (
+                <div className="space-y-6">
+                  <div onClick={handleUnlockGift} className="text-8xl cursor-pointer hover:scale-110 transition-transform">
+                    🎁
+                  </div>
+                  <button
+                    onClick={handleUnlockGift}
+                    className="px-8 py-4 rounded-full bg-gradient-to-r from-amber-400 via-pink-500 to-purple-600 text-slate-950 font-extrabold text-lg shadow-xl cursor-pointer hover:scale-105 transition-transform"
+                  >
+                    <Lock className="w-5 h-5 inline mr-2" />
+                    Unlock My Surprise
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-8xl animate-bounce">🎉</div>
+                  <p className="text-2xl font-serif text-slate-100">
+                    "You made it this far, so you deserve a little extra happiness today and always."
+                  </p>
+                  <h3 className="text-3xl font-serif font-bold text-pink-400 glow-text-pink">
+                    Happy Birthday, {name}! 🤍
+                  </h3>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Footer */}
+          <footer className="py-12 px-4 text-center text-slate-400 text-xs md:text-sm font-mono space-y-2 border-t border-white/5">
+            <div>CELEBRATION DEPLOYED FOR {name.toUpperCase()}</div>
+            <div className="text-slate-300 font-semibold">developed by Yawar Abbas</div>
+          </footer>
+        </main>
+      )}
+
+      {/* BOOM! Animation Overlay */}
+      <AnimatePresence>
+        {boomState && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: [1, 2.5, 4], opacity: [1, 1, 0] }}
+            transition={{ duration: 1, ease: 'easeOut' }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 pointer-events-none"
+          >
+            <span className="text-7xl sm:text-9xl font-extrabold text-amber-300 glow-text-gold">
+              💥 BOOM! 💥
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Floating Island Navigation & Real-time Audio Visualizer */}
-      <header className="fixed top-6 inset-x-0 z-40 max-w-5xl mx-auto px-4 pointer-events-none">
-        <div className="flex items-center justify-between">
-          <div className="pointer-events-auto glass-pill px-5 py-2.5 rounded-full flex items-center gap-3 shadow-lg">
-            <span className="font-mono text-xs tracking-widest text-[#E8C595]">
-              ZAINII // 09.09
-            </span>
-          </div>
-
-          <button
-            onClick={toggleAudio}
-            className="pointer-events-auto glass-pill px-4 py-2.5 rounded-full flex items-center gap-3 border border-white/10 text-xs font-mono text-[#FBF8F5] shadow-lg hover:border-[#E8C595]/40 transition-colors cursor-pointer"
-            title={isPlaying ? "Pause Kalyani" : "Play Kalyani"}
-          >
-            <div className="flex items-end gap-1 h-3.5">
-              {[0.5, 1, 0.7, 0.4].map((scale, i) => (
-                <motion.span
-                  key={i}
-                  className="w-0.5 bg-[#E8C595] rounded-full inline-block"
-                  animate={{ height: isPlaying ? ['20%', `${scale * 100}%`, '20%'] : '25%' }}
-                  transition={{ repeat: Infinity, duration: 0.8 + i * 0.2, ease: 'easeInOut' }}
-                />
-              ))}
-            </div>
-            <span className="hidden sm:inline text-[#8F8799]">
-              {isPlaying ? "KALYANI (LIVE)" : "PAUSED"}
-            </span>
-            {isPlaying ? <Volume2 className="w-3.5 h-3.5 text-[#E8C595]" /> : <VolumeX className="w-3.5 h-3.5 text-[#8F8799]" />}
-          </button>
-        </div>
-      </header>
-
-      {/* Main Experience Flow */}
-      <main className="relative z-10 space-y-28 md:space-y-40 pb-20">
-        {/* The Hero Canvas: 09.09 Moment */}
-        <section className="min-h-screen flex flex-col justify-center items-center text-center px-4 pt-28">
-          <div className="max-w-3xl mx-auto space-y-8">
+      {/* The Joker Modal */}
+      <AnimatePresence>
+        {showJoker && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
             <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-pill border border-[#E8C595]/20 font-mono text-xs tracking-[0.2em] text-[#E8C595]"
+              initial={{ scale: 0.2, rotate: -20, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+              className="max-w-md w-full glass-card p-8 rounded-3xl text-center border border-pink-400 shadow-[0_0_60px_rgba(236,72,153,0.6)] space-y-6"
             >
-              <Stars className="w-3.5 h-3.5" />
-              <span>A DATE CARVED IN THE STARS — 9TH SEPTEMBER</span>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 25 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.2 }}
-              className="space-y-2"
-            >
-              <h2 className="text-2xl sm:text-4xl md:text-5xl font-light tracking-tight text-[#FBF8F5]/90">
-                Wishing the happiest of birthdays to
-              </h2>
-              <h1 className="font-serif italic text-6xl sm:text-8xl md:text-9xl champagne-shimmer font-bold leading-none py-2">
-                Zainii.
-              </h1>
-            </motion.div>
-
-            {/* Monospace September 9th Live Clock */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="pt-2 font-mono text-sm tracking-widest text-[#8F8799] flex items-center justify-center gap-2"
-            >
-              <span className="w-2 h-2 rounded-full bg-[#C76D7E] animate-ping" />
-              <span>SEPTEMBER 09 // UTC TICKER: {timeTicker}</span>
-            </motion.div>
-
-            {/* Scroll Indicator */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              className="pt-16 flex flex-col items-center gap-2 font-mono text-xs tracking-widest text-[#8F8799]"
-            >
-              <span>Scroll to unpack your chapter</span>
-              <ArrowDown className="w-4 h-4 animate-bounce text-[#E8C595]" />
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Chapter 01: The Interactive "Evasive Key" Quiz */}
-        <section className="px-4 max-w-2xl mx-auto">
-          <div className="glass-nocturne rounded-[2.5rem] p-8 md:p-12 text-center relative overflow-hidden border border-white/10 shadow-2xl">
-            <div className="space-y-6">
-              <span className="font-mono text-xs uppercase tracking-[0.3em] text-[#C76D7E]">
-                CHAPTER 01 // THE KEY
-              </span>
-
-              <h3 className="font-serif italic text-3xl sm:text-4xl text-[#FBF8F5] leading-snug">
-                "Before we unlock your gift... are you officially the coolest person born on September 9th?"
+              <div className="text-9xl animate-bounce">🃏</div>
+              <h3 className="text-4xl sm:text-5xl font-serif font-extrabold text-amber-300 glow-text-gold">
+                HAPPY BIRTHDAY!
               </h3>
-
-              {!quizUnlocked ? (
-                <div className="pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 relative min-h-[120px]">
-                  {/* Option A (The True Key) */}
-                  <button
-                    onClick={handleCorrectChoice}
-                    className="px-8 py-4 rounded-full bg-gradient-to-r from-[#E8C595] to-[#C76D7E] text-[#07070A] font-medium text-sm tracking-wider uppercase transition-transform active:scale-95 shadow-lg shadow-[#E8C595]/20 cursor-pointer"
-                  >
-                    Obviously, 100% Yes
-                  </button>
-
-                  {/* Option B (The Evasive Springing Target) */}
-                  <motion.div
-                    animate={{ x: btnOffset.x, y: btnOffset.y }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                    className="relative inline-block"
-                  >
-                    <button
-                      onMouseEnter={handleEvasiveHover}
-                      onClick={() => {
-                        if (evasiveAttempts > 0) handleCorrectChoice();
-                      }}
-                      className="px-8 py-4 rounded-full glass-pill border border-white/10 hover:border-white/20 text-[#8F8799] text-sm tracking-wider uppercase transition-colors cursor-pointer"
-                    >
-                      Not sure, maybe?
-                    </button>
-                    {tooltip && (
-                      <span className="absolute -top-8 inset-x-0 mx-auto font-mono text-[10px] text-[#E8C595] whitespace-nowrap">
-                        {tooltip}
-                      </span>
-                    )}
-                  </motion.div>
-                </div>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="p-6 rounded-2xl bg-[#E8C595]/10 border border-[#E8C595]/30 text-[#E8C595] space-y-2"
-                >
-                  <p className="font-mono text-xs tracking-widest uppercase">
-                    Verification Confirmed
-                  </p>
-                  <p className="font-serif italic text-xl text-[#FBF8F5]">
-                    Correct answer, Zainii. You unlocked the vault below.
-                  </p>
-                </motion.div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Chapter 02: "The Vault of Wishes" */}
-        <section className="px-4 max-w-6xl mx-auto space-y-8">
-          <div className="text-center space-y-3">
-            <span className="font-mono text-xs uppercase tracking-[0.3em] text-[#E8C595]">
-              CHAPTER 02 // BESPOKE SURPRISE
-            </span>
-            <h2 className="font-serif italic text-4xl sm:text-5xl text-[#FBF8F5]">
-              The Vault of Wishes
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-            {/* Card 1: The Constellation */}
-            <div className="glass-nocturne rounded-[2rem] p-8 border border-white/10 flex flex-col justify-between hover:border-[#E8C595]/30 transition-all duration-300">
-              <div className="space-y-3">
-                <span className="font-mono text-xs text-[#8F8799] uppercase tracking-widest">01 // CONSTELLATION</span>
-                <h4 className="font-serif italic text-2xl text-[#E8C595]">Z & 9 Alignment</h4>
-                <p className="text-xs text-[#8F8799] leading-relaxed">
-                  Interactive astral node. Linking the stellar coordinates of September 9th.
-                </p>
-              </div>
-
-              <div className="h-44 my-6 rounded-xl bg-black/40 border border-white/5 relative flex items-center justify-center overflow-hidden group">
-                <svg className="w-36 h-36 stroke-[#E8C595]/40 group-hover:stroke-[#E8C595] transition-colors duration-500" viewBox="0 0 100 100">
-                  <circle cx="20" cy="25" r="2.5" fill="#FAF8F5" />
-                  <circle cx="80" cy="25" r="2.5" fill="#FAF8F5" />
-                  <circle cx="20" cy="75" r="2.5" fill="#FAF8F5" />
-                  <circle cx="80" cy="75" r="2.5" fill="#FAF8F5" />
-                  <line x1="20" y1="25" x2="80" y2="25" strokeWidth="1" strokeDasharray="2 2" />
-                  <line x1="80" y1="25" x2="20" y2="75" strokeWidth="1" strokeDasharray="2 2" />
-                  <line x1="20" y1="75" x2="80" y2="75" strokeWidth="1" strokeDasharray="2 2" />
-                  <circle cx="50" cy="45" r="12" fill="none" strokeWidth="1" />
-                  <line x1="62" y1="45" x2="62" y2="65" strokeWidth="1" />
-                </svg>
-                <span className="absolute bottom-3 font-mono text-[10px] text-[#8F8799]">
-                  STEL.0909 // ACTIVE
-                </span>
-              </div>
-            </div>
-
-            {/* Card 2: The Written Heart */}
-            <div className="glass-nocturne rounded-[2rem] p-8 border border-white/10 flex flex-col justify-between hover:border-[#C76D7E]/40 transition-all duration-300">
-              <div className="space-y-3">
-                <span className="font-mono text-xs text-[#8F8799] uppercase tracking-widest">02 // THE TRIBUTE</span>
-                <h4 className="font-serif italic text-2xl text-[#C76D7E]">The Written Heart</h4>
-              </div>
-
-              <blockquote className="my-6 font-serif italic text-lg sm:text-xl text-[#FBF8F5] leading-relaxed border-l-2 border-[#C76D7E]/50 pl-4 py-2">
-                "May your year ahead be as luminous as midnight stars, filled with unyielding joy, boundless horizons, and moments that take your breath away."
-              </blockquote>
-
-              <span className="font-mono text-xs text-[#8F8799] text-right">
-                — EXCLUSIVELY FOR ZAINII
-              </span>
-            </div>
-
-            {/* Card 3: The Digital Candle Wish */}
-            <div className="glass-nocturne rounded-[2rem] p-8 border border-white/10 flex flex-col justify-between hover:border-[#E8C595]/30 transition-all duration-300">
-              <div className="space-y-3">
-                <span className="font-mono text-xs text-[#8F8799] uppercase tracking-widest">03 // CELEBRATION ARTIFACT</span>
-                <h4 className="font-serif italic text-2xl text-[#E8C595]">The Birthday Wish</h4>
-                <p className="text-xs text-[#8F8799] leading-relaxed">
-                  Hold the button for 3 seconds to make a wish and extinguish the candle.
-                </p>
-              </div>
-
-              <div className="flex flex-col items-center justify-center my-6 space-y-4">
-                <div className="relative h-16 flex items-center justify-center">
-                  {candleLit ? (
-                    <motion.div
-                      animate={{ scale: [1, 1.15, 1], opacity: [0.8, 1, 0.8] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                      className="w-5 h-8 bg-gradient-to-t from-[#C76D7E] via-[#E8C595] to-white rounded-full blur-[1px] shadow-[0_0_20px_#E8C595]"
-                    />
-                  ) : (
-                    <span className="font-mono text-xs text-[#8F8799]">
-                      [WISH SECURED IN STARS]
-                    </span>
-                  )}
-                </div>
-
-                {candleLit ? (
-                  <button
-                    onMouseDown={startBlowing}
-                    onMouseUp={stopBlowing}
-                    onTouchStart={startBlowing}
-                    onTouchEnd={stopBlowing}
-                    className="relative px-6 py-3 rounded-full bg-white/5 border border-[#E8C595]/30 text-xs font-mono text-[#E8C595] overflow-hidden cursor-pointer active:scale-95 transition-transform"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      <Flame className="w-3.5 h-3.5" />
-                      Hold to Blow Out
-                    </span>
-                    <div
-                      className="absolute left-0 inset-y-0 bg-[#E8C595]/30 transition-all duration-75"
-                      style={{ width: `${candleProgress}%` }}
-                    />
-                  </button>
-                ) : (
-                  <div className="inline-flex items-center gap-1.5 font-mono text-xs text-[#E8C595]">
-                    <Check className="w-4 h-4" />
-                    <span>LOCKED FOREVER</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Chapter 03: The Memory Horizon (Polaroid Drift) */}
-        <section className="px-4 max-w-6xl mx-auto space-y-8">
-          <div className="text-center space-y-2">
-            <span className="font-mono text-xs uppercase tracking-[0.3em] text-[#8F8799]">
-              CHAPTER 03 // GALLERY
-            </span>
-            <h3 className="font-serif italic text-3xl sm:text-4xl text-[#FBF8F5]">
-              The Memory Horizon
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-4">
-            {[
-              {
-                title: "Luminescent Radiance",
-                sub: "Captured in time",
-                img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80",
-                tilt: "-rotate-2"
-              },
-              {
-                title: "Nocturne Elegance",
-                sub: "Midnight dreams",
-                img: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80",
-                tilt: "rotate-2"
-              },
-              {
-                title: "Golden Hour Glow",
-                sub: "09.09 Odyssey",
-                img: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=800&q=80",
-                tilt: "-rotate-1"
-              }
-            ].map((card, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ scale: 1.04, rotate: 0 }}
-                transition={{ duration: 0.3 }}
-                className={`bg-[#120F17] p-4 rounded-2xl border border-white/10 shadow-2xl ${card.tilt} transition-transform duration-300`}
+              <p className="text-lg text-slate-100 font-medium">
+                Did you really think it was going to be serious? 😂 Have the most wonderful year ahead, {name}!
+              </p>
+              <button
+                onClick={() => setShowJoker(false)}
+                className="px-8 py-3 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold text-base cursor-pointer hover:scale-105 transition-transform"
               >
-                <div className="overflow-hidden rounded-xl h-64 bg-black/40">
-                  <img
-                    src={card.img}
-                    alt={card.title}
-                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
-                  />
-                </div>
-                <div className="pt-4 px-1 flex justify-between items-baseline">
-                  <div>
-                    <h5 className="font-serif italic text-lg text-[#FBF8F5]">{card.title}</h5>
-                    <p className="font-mono text-[10px] text-[#8F8799] uppercase">{card.sub}</p>
-                  </div>
-                  <span className="font-mono text-xs text-[#E8C595]">0{i + 1}</span>
-                </div>
-              </motion.div>
-            ))}
+                Close & Enjoy the Music 🎶
+              </button>
+            </motion.div>
           </div>
-        </section>
-
-        {/* The Architect's Signature Footer */}
-        <footer className="rounded-t-[3rem] border-t border-white/5 bg-[#120F17]/80 backdrop-blur-md py-12 px-6 sm:px-12 max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="font-mono text-xs tracking-widest text-[#8F8799] text-center sm:text-left">
-              09.09 // FOR ZAINII // ALL RIGHTS RESERVED
-            </div>
-            <div className="font-mono text-xs tracking-wider text-[#FBF8F5] flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#E8C595]" />
-              <span>developed by Yawar Abbas</span>
-            </div>
-          </div>
-        </footer>
-      </main>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
